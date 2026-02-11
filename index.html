@@ -163,9 +163,18 @@ function copyResult() {
   });
 }
 
+// 2. 検索機能をアップデート
 function filterList() {
+  // 入力された文字を小文字に統一（英字対策）
   const q = document.getElementById("songSearch").value.toLowerCase();
-  const filtered = songs.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
+  
+  const filtered = songs.filter(s => {
+    // タイトル、歌手名、そして「かな」のいずれかにヒットするか確認
+    return s.title.toLowerCase().includes(q) || 
+           s.artist.toLowerCase().includes(q) || 
+           (s.kana && s.kana.includes(q)); // かなデータがある場合のみチェック
+  });
+
   const t = document.getElementById("songTable");
   t.innerHTML = "<tr><th>曲名 / 歌手</th><th>操作</th></tr>";
   filtered.forEach(s => {
@@ -173,7 +182,6 @@ function filterList() {
     <td><button class="btn btn-copy" onclick="copyDirect('${s.title} / ${s.artist}')">コピー</button></td></tr>`;
   });
 }
-
 function copyDirect(text) {
   navigator.clipboard.writeText(text);
   alert("コピーしました！");
@@ -183,3 +191,4 @@ filterList();
 </script>
 </body>
 </html>
+
