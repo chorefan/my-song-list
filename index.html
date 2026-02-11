@@ -3,37 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>本格あみだくじ選曲</title>
+<title>My Song Portal</title>
 <style>
-  body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; background-color: #f4f4f4; text-align: center; }
-  .search-container { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-  
-  /* あみだくじキャンバス */
-  #amida-stage { background: white; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); cursor: crosshair; }
-  .controls { margin-top: 15px; }
-  .btn-start { background: #e91e63; color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+  /* スタイルは維持 */
+  body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; background-color: #f0f2f5; }
+  section { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
+  h1, h2 { border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
+  .search-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+  #amida-stage { background: #fff; border: 1px solid #eee; width: 100%; height: auto; }
+  .btn-start { background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
   .btn-start:disabled { background: #ccc; }
-
-  table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; text-align: left; }
-  th, td { border: 1px solid #ddd; padding: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
 </style>
 </head>
 <body>
 
-<h1>🎤 あみだくじ選曲サイト</h1>
+<h1>🎤 My Song Portal</h1>
 
-<div class="search-container">
-    <canvas id="amida-stage" width="800" height="400"></canvas>
-    <div class="controls">
-        <button id="startBtn" class="btn-start" onclick="drawAmida()">🎲 あみだくじスタート！</button>
-    </div>
-    <div id="result-text" style="font-size: 1.5rem; font-weight: bold; color: #e91e63; margin-top: 15px;"></div>
-</div>
+<section id="profile">
+  <h2>Profile</h2>
+  <p><strong>名前：</strong> 歌うAIクリエイター</p>
+  <p>懐メロから最新曲まで。あみだくじで今日の1曲を決めましょう！</p>
+</section>
 
-<div class="search-container">
-    <h2>全曲リスト</h2>
-    <table id="songTable"></table>
-</div>
+<section id="amida">
+  <h2>🎲 今日の1曲あみだくじ</h2>
+  <canvas id="amida-stage" width="800" height="400"></canvas>
+  <div style="margin-top:20px;">
+    <button id="startBtn" class="btn-start" onclick="startAmidaProcess()">あみだくじスタート！</button>
+  </div>
+  <div id="result-text" style="font-size: 1.5rem; font-weight: bold; color: #e91e63; margin-top: 15px; min-height: 1.5em;"></div>
+</section>
+
+<section id="list">
+  <h2>🔍 曲検索・リスト</h2>
+  <div class="search-box">
+    <input id="songSearch" placeholder="曲名で検索..." oninput="filterList()">
+    <input id="artistSearch" placeholder="歌手名で検索..." oninput="filterList()">
+  </div>
+  <table id="songTable"></table>
+</section>
 
 <script>
 const songs = [
@@ -51,113 +62,121 @@ const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
 const resultText = document.getElementById('result-text');
 
-let lines = []; // 横線のデータ
+let isPlaying = false;
+let amidaLines = []; // 横線データ
 
-function initTable() {
-    const t = document.getElementById("songTable");
-    t.innerHTML = "<tr><th>曲名</th><th>歌手</th></tr>";
-    songs.forEach(s => t.innerHTML += `<tr><td>${s.title}</td><td>${s.artist}</td></tr>`);
-}
-
-function drawAmida() {
-    startBtn.disabled = true;
-    resultText.innerText = "";
-    
+// 初期表示（縦線のみ描画）
+function initAmida() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     const count = songs.length;
     const spacing = canvas.width / (count + 1);
-    const startY = 50;
-    const endY = 350;
-    
-    // 横線の生成
-    lines = [];
+    const startY = 30, endY = 350;
+
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < count; i++) {
+        const x = spacing * (i + 1);
+        ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+        ctx.fillStyle = "#999"; ctx.font = "10px sans-serif";
+        ctx.fillText(songs[i].title.substring(0,5), x - 15, endY + 20);
+    }
+}
+
+// ボタンクリック時に実行
+function startAmidaProcess() {
+    if (isPlaying) return;
+    isPlaying = true;
+    startBtn.disabled = true;
+    resultText.innerText = "運命の移動中...";
+
+    // 横線のランダム生成
+    const count = songs.length;
+    amidaLines = [];
     for (let i = 0; i < count - 1; i++) {
-        for (let j = 0; j < 4; j++) { // 各列に4本程度の横線
-            lines.push({
-                from: i,
-                y: startY + Math.random() * (endY - startY - 20) + 10
+        for (let j = 0; j < 3; j++) {
+            amidaLines.push({ 
+                from: i, 
+                y: 50 + Math.random() * 280 
             });
         }
     }
 
-    // 描画アニメーション
-    let currentY = startY;
-    let currentCol = Math.floor(Math.random() * count); // スタート位置をランダムに
-    const startCol = currentCol;
+    animateAmida();
+}
 
-    function animate() {
+function animateAmida() {
+    const count = songs.length;
+    const spacing = canvas.width / (count + 1);
+    const startY = 30, endY = 350;
+    let traceY = startY;
+    let traceCol = Math.floor(Math.random() * count);
+    let visitedLines = new Set();
+
+    function frame() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // 縦線と文字の描画
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.font = "12px sans-serif";
-        ctx.fillStyle = "#333";
-
+        // 1. 縦線と曲名
+        ctx.strokeStyle = '#ddd';
         for (let i = 0; i < count; i++) {
             const x = spacing * (i + 1);
-            ctx.beginPath();
-            ctx.moveTo(x, startY);
-            ctx.lineTo(x, endY);
-            ctx.stroke();
-            
-            // 下に曲名を縦書きっぽく表示
-            ctx.fillText(songs[i].title.substring(0,6), x - 10, endY + 20);
+            ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+            ctx.fillStyle = "#999";
+            ctx.fillText(songs[i].title.substring(0,5), x - 15, endY + 20);
         }
 
-        // 横線の描画
-        lines.forEach(line => {
-            const x1 = spacing * (line.from + 1);
-            const x2 = spacing * (line.from + 2);
+        // 2. 生成された横線を描画
+        ctx.strokeStyle = '#ddd';
+        amidaLines.forEach(l => {
             ctx.beginPath();
-            ctx.moveTo(x1, line.y);
-            ctx.lineTo(x2, line.y);
+            ctx.moveTo(spacing * (l.from + 1), l.y);
+            ctx.lineTo(spacing * (l.from + 2), l.y);
             ctx.stroke();
         });
 
-        // 追跡カーソルの描画（赤丸）
-        moveLogic();
-    }
-
-    let traceY = startY;
-    let traceCol = startCol;
-    let visitedLines = new Set();
-
-    function moveLogic() {
-        ctx.fillStyle = 'red';
+        // 3. 動く赤い丸
+        ctx.fillStyle = '#e91e63';
         ctx.beginPath();
-        ctx.arc(spacing * (traceCol + 1), traceY, 6, 0, Math.PI * 2);
+        ctx.arc(spacing * (traceCol + 1), traceY, 8, 0, Math.PI * 2);
         ctx.fill();
 
+        // 4. 移動ロジック
         if (traceY < endY) {
-            // 横線判定
-            let hitLine = lines.find(l => 
+            let hit = amidaLines.find(l => 
                 Math.abs(l.y - traceY) < 2 && 
-                (l.from === traceCol || l.from === traceCol - 1) &&
+                (l.from === traceCol || l.from === traceCol - 1) && 
                 !visitedLines.has(l)
             );
-
-            if (hitLine) {
-                visitedLines.add(hitLine);
-                if (hitLine.from === traceCol) {
-                    traceCol++; // 右へ
-                } else {
-                    traceCol--; // 左へ
-                }
+            
+            if (hit) {
+                visitedLines.add(hit);
+                traceCol = (hit.from === traceCol) ? traceCol + 1 : traceCol - 1;
             }
-            traceY += 2; // 下に進む
-            requestAnimationFrame(animate);
+            traceY += 3;
+            requestAnimationFrame(frame);
         } else {
-            // 終了
             resultText.innerText = "✨ 結果： " + songs[traceCol].title + " ✨";
             startBtn.disabled = false;
+            isPlaying = false;
         }
     }
-    animate();
+    frame();
 }
 
-initTable();
-// 初回描画
-setTimeout(drawAmida, 500);
+// 検索機能
+function filterList() {
+    const songQ = document.getElementById("songSearch").value.toLowerCase();
+    const artistQ = document.getElementById("artistSearch").value.toLowerCase();
+    const filtered = songs.filter(s => 
+      s.title.toLowerCase().includes(songQ) && s.artist.toLowerCase().includes(artistQ)
+    );
+    const t = document.getElementById("songTable");
+    t.innerHTML = "<tr><th>曲名</th><th>歌手</th></tr>";
+    filtered.forEach(s => t.innerHTML += `<tr><td>${s.title}</td><td>${s.artist}</td></tr>`);
+}
+
+// 初期化
+initAmida();
+filterList();
 </script>
 
 </body>
