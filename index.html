@@ -63,13 +63,13 @@
 <section id="list">
   <h2>🔍 曲リスト (<span id="songCount">0</span>曲)</h2>
   <div class="search-box">
-    <input id="songSearch" placeholder="ひらがな・カタカナ・漢字で検索..." oninput="filterList()">
+    <input id="songSearch" placeholder="曲/歌手検索" oninput="filterList()">
   </div>
   <table id="songTable"></table>
 </section>
 
 <script>
-// データのカンマ抜けをすべて修正しました
+
 const songs = [
   {title:"マリーゴールド", artist:"あいみょん"},
   {title:"君はロックを聴かない", artist:"あいみょん"},
@@ -394,5 +394,6 @@ filterList();
 </script>
 </body>
 </html>
+
 
 
