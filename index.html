@@ -5,25 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Song Portal</title>
 <style>
-  body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; background-color: #f0f2f5; }
+  :root { --primary: #4CAF50; --accent: #e91e63; --bg: #f0f2f5; }
+  body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; background-color: var(--bg); color: #333; }
   section { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
-  h1, h2 { border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
+  h1, h2 { border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
   
-  /* あみだくじエリアを最初は隠す */
-  #amida-display { 
-    display: none; 
-    margin-top: 20px; 
-    text-align: center;
+  /* ボタン類 */
+  .btn { border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 1rem; }
+  .btn-main { background: var(--primary); color: white; }
+  .btn-accent { background: var(--accent); color: white; }
+  .btn-copy { background: #eee; color: #333; padding: 5px 15px; font-size: 0.8rem; border-radius: 5px; }
+  .btn:hover { opacity: 0.8; transform: scale(1.05); }
+
+  /* モーダル（小窓）の設定 */
+  #amida-modal {
+    display: none; /* 最初は隠す */
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); z-index: 1000;
+    justify-content: center; align-items: center;
   }
+  .modal-content {
+    background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 800px;
+    position: relative; text-align: center;
+  }
+  .close-btn { position: absolute; top: 10px; right: 20px; font-size: 2rem; cursor: pointer; color: #666; }
+
+  canvas { background: #fff; width: 100%; height: auto; border: 1px solid #eee; }
   
-  #amida-stage { background: #fff; border: 1px solid #eee; width: 100%; height: auto; max-width: 800px; }
-  .btn-start { background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
-  .btn-start:disabled { background: #ccc; }
-  
-  .search-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
   input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+  th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: left; }
 </style>
 </head>
 <body>
@@ -32,24 +44,30 @@
 
 <section id="profile">
   <h2>Profile</h2>
-  <p><strong>名前：</strong> 歌うAIクリエイター</p>
-  <p>懐メロから最新曲まで。ボタンを押して、今日の運命の1曲を決めましょう！</p>
-  
-  <div style="text-align: center; margin-top: 20px;">
-    <button id="startBtn" class="btn-start" onclick="startAmidaProcess()">🎲 今日の1曲をあみだくじで決める！</button>
-  </div>
-
-  <div id="amida-display">
-    <canvas id="amida-stage" width="800" height="400"></canvas>
-    <div id="result-text" style="font-size: 1.5rem; font-weight: bold; color: #e91e63; margin-top: 15px; min-height: 1.5em;"></div>
-  </div>
+  <p>歌うAIクリエイターです。今日の1曲をあみだくじで選んでみませんか？</p>
+  <button class="btn btn-main" onclick="openAmida()">🎲 あみだくじで選曲する</button>
 </section>
 
+<div id="amida-modal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeAmida()">&times;</span>
+    <h3>運命のあみだくじ</h3>
+    <canvas id="amida-stage" width="800" height="400"></canvas>
+    
+    <div id="result-area" style="margin-top: 15px; min-height: 80px;">
+      <div id="result-text" style="font-size: 1.4rem; font-weight: bold; color: var(--accent);"></div>
+      <div id="action-btns" style="display: none; gap: 10px; justify-content: center; margin-top: 10px;">
+        <button class="btn btn-main" onclick="startAmida()">もう一回！</button>
+        <button id="copyBtn" class="btn btn-copy" onclick="copyResult()">曲名をコピー</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <section id="list">
-  <h2>🔍 曲検索・リスト</h2>
+  <h2>🔍 曲リスト</h2>
   <div class="search-box">
     <input id="songSearch" placeholder="曲名で検索..." oninput="filterList()">
-    <input id="artistSearch" placeholder="歌手名で検索..." oninput="filterList()">
   </div>
   <table id="songTable"></table>
 </section>
@@ -61,109 +79,107 @@ const songs = [
   {title:"夜に駆ける", artist:"YOASOBI"},
   {title:"世界に一つだけの花", artist:"SMAP"},
   {title:"Pretender", artist:"Official髭男dism"},
-  {title:"Lemon", artist:"米津玄師"},
-  {title:"マリーゴールド", artist:"あいみょん"}
+  {title:"Lemon", artist:"米津玄師"}
 ];
 
+const modal = document.getElementById('amida-modal');
 const canvas = document.getElementById('amida-stage');
 const ctx = canvas.getContext('2d');
-const startBtn = document.getElementById('startBtn');
-const amidaDisplay = document.getElementById('amida-display');
 const resultText = document.getElementById('result-text');
+const actionBtns = document.getElementById('action-btns');
 
-let isPlaying = false;
 let amidaLines = [];
+let currentResult = "";
 
-function startAmidaProcess() {
-    if (isPlaying) return;
-    
-    // 表示をONにする
-    amidaDisplay.style.display = "block";
-    isPlaying = true;
-    startBtn.disabled = true;
-    resultText.innerText = "あみだくじ生成中...";
-
-    // 横線の生成
-    const count = songs.length;
-    amidaLines = [];
-    for (let i = 0; i < count - 1; i++) {
-        for (let j = 0; j < 4; j++) {
-            amidaLines.push({ from: i, y: 50 + Math.random() * 280 });
-        }
-    }
-
-    // 少しスクロールさせて見やすくする（スマホ対策）
-    amidaDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    setTimeout(animateAmida, 500); // 少し溜めてから開始
+// モーダル操作
+function openAmida() {
+  modal.style.display = 'flex';
+  startAmida();
 }
 
-function animateAmida() {
-    const count = songs.length;
-    const spacing = canvas.width / (count + 1);
-    const startY = 30, endY = 350;
-    let traceY = startY;
-    let traceCol = Math.floor(Math.random() * count);
-    let visitedLines = new Set();
+function closeAmida() {
+  modal.style.display = 'none';
+}
 
-    resultText.innerText = "運命の移動中...";
-
-    function frame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.strokeStyle = '#ddd';
-        for (let i = 0; i < count; i++) {
-            const x = spacing * (i + 1);
-            ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
-            ctx.fillStyle = "#999"; ctx.font = "10px sans-serif";
-            ctx.fillText(songs[i].title.substring(0,5), x - 15, endY + 20);
-        }
-
-        amidaLines.forEach(l => {
-            ctx.beginPath();
-            ctx.moveTo(spacing * (l.from + 1), l.y);
-            ctx.lineTo(spacing * (l.from + 2), l.y);
-            ctx.stroke();
-        });
-
-        ctx.fillStyle = '#e91e63';
-        ctx.beginPath();
-        ctx.arc(spacing * (traceCol + 1), traceY, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (traceY < endY) {
-            let hit = amidaLines.find(l => 
-                Math.abs(l.y - traceY) < 2 && (l.from === traceCol || l.from === traceCol - 1) && !visitedLines.has(l)
-            );
-            if (hit) {
-                visitedLines.add(hit);
-                traceCol = (hit.from === traceCol) ? traceCol + 1 : traceCol - 1;
-            }
-            traceY += 3.5; // スピード調整
-            requestAnimationFrame(frame);
-        } else {
-            resultText.innerHTML = `✨ 結果： <strong>${songs[traceCol].title}</strong> / ${songs[traceCol].artist} ✨`;
-            startBtn.disabled = false;
-            isPlaying = false;
-            startBtn.innerText = "もう一度あみだくじ！";
-        }
+// あみだくじ実行
+function startAmida() {
+  actionBtns.style.display = "none";
+  resultText.innerText = "生成中...";
+  
+  const count = songs.length;
+  amidaLines = [];
+  for (let i = 0; i < count - 1; i++) {
+    for (let j = 0; j < 4; j++) {
+      amidaLines.push({ from: i, y: 50 + Math.random() * 280 });
     }
-    frame();
+  }
+  animate();
+}
+
+function animate() {
+  const count = songs.length;
+  const spacing = canvas.width / (count + 1);
+  const startY = 30, endY = 350;
+  let traceY = startY;
+  let traceCol = Math.floor(Math.random() * count);
+  let visitedLines = new Set();
+
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#ddd';
+    for (let i = 0; i < count; i++) {
+      const x = spacing * (i + 1);
+      ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+      ctx.fillStyle = "#999"; ctx.font = "10px sans-serif";
+      ctx.fillText(songs[i].title.substring(0,5), x - 15, endY + 20);
+    }
+    amidaLines.forEach(l => {
+      ctx.beginPath(); ctx.moveTo(spacing*(l.from+1), l.y); ctx.lineTo(spacing*(l.from+2), l.y); ctx.stroke();
+    });
+
+    ctx.fillStyle = '#e91e63';
+    ctx.beginPath(); ctx.arc(spacing * (traceCol + 1), traceY, 8, 0, Math.PI * 2); ctx.fill();
+
+    if (traceY < endY) {
+      let hit = amidaLines.find(l => Math.abs(l.y - traceY) < 2 && (l.from === traceCol || l.from === traceCol - 1) && !visitedLines.has(l));
+      if (hit) { visitedLines.add(hit); traceCol = (hit.from === traceCol) ? traceCol + 1 : traceCol - 1; }
+      traceY += 4;
+      requestAnimationFrame(frame);
+    } else {
+      currentResult = `${songs[traceCol].title} / ${songs[traceCol].artist}`;
+      resultText.innerHTML = `✨ 結果：${currentResult} ✨`;
+      actionBtns.style.display = "flex";
+    }
+  }
+  frame();
+}
+
+// コピー機能
+function copyResult() {
+  navigator.clipboard.writeText(currentResult).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.innerText = "コピー完了！";
+    setTimeout(() => btn.innerText = "曲名をコピー", 2000);
+  });
 }
 
 function filterList() {
-    const songQ = document.getElementById("songSearch").value.toLowerCase();
-    const artistQ = document.getElementById("artistSearch").value.toLowerCase();
-    const filtered = songs.filter(s => 
-      s.title.toLowerCase().includes(songQ) && s.artist.toLowerCase().includes(artistQ)
-    );
-    const t = document.getElementById("songTable");
-    t.innerHTML = "<tr><th>曲名</th><th>歌手</th></tr>";
-    filtered.forEach(s => t.innerHTML += `<tr><td>${s.title}</td><td>${s.artist}</td></tr>`);
+  const q = document.getElementById("songSearch").value.toLowerCase();
+  const filtered = songs.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
+  const t = document.getElementById("songTable");
+  t.innerHTML = "<tr><th>曲名 / 歌手</th><th>操作</th></tr>";
+  filtered.forEach(s => {
+    t.innerHTML += `<tr><td>${s.title} <br><small>${s.artist}</small></td>
+    <td><button class="btn btn-copy" onclick="copyDirect('${s.title} / ${s.artist}')">コピー</button></td></tr>`;
+  });
+}
+
+function copyDirect(text) {
+  navigator.clipboard.writeText(text);
+  alert("コピーしました！");
 }
 
 filterList();
 </script>
-
 </body>
 </html>
