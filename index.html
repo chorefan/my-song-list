@@ -5,16 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Song List</title>
 <style>
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; background-color: #f9f9f9; }
-  h1, h2 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-  .search-container { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-  input { padding: 8px; width: calc(50% - 20px); margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
-  table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-  th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-  th { background-color: #f2f2f2; }
-  .ranking-row:nth-child(-n+4) { font-weight: bold; color: #d32f2f; } /* TOP3を強調 */
-  .btn-random { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-  .btn-random:hover { background: #45a049; }
+  body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; background-color: #f9f9f9; }
+  .search-container { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  
+  /* あみだくじ演出エリア */
+  #amida-container { 
+    display: none; /* 最初は隠しておく */
+    text-align: center; margin: 20px 0; padding: 20px; 
+    background: #fff; border: 2px dashed #4CAF50; border-radius: 10px;
+  }
+  .amida-line { 
+    width: 4px; height: 100px; background: #ddd; margin: 0 auto; position: relative; overflow: hidden;
+  }
+  .amida-ball { 
+    width: 10px; height: 10px; background: #4CAF50; border-radius: 50%;
+    position: absolute; left: -3px; top: -10px;
+    transition: top 1.5s ease-in; /* 下に落ちる動き */
+  }
+  #result-display { font-size: 1.2rem; font-weight: bold; color: #2e7d32; margin-top: 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: white; }
+  th, td { border: 1px solid #ddd; padding: 10px; }
+  .btn-random { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
 </style>
 </head>
 <body>
@@ -22,24 +34,22 @@
 <h1>🎤 歌える曲リスト</h1>
 
 <div class="search-container">
-  <h2>Profile</h2>
-  <p>こんにちは！歌うことが大好きな[あなたの名前]です。リクエスト募集中！</p>
-  <a href="https://docs.google.com/forms/d/YOUR_GOOGLE_FORM_ID/viewform" target="_blank">👉 リクエスト・投票はこちらから</a>
+  <h2>曲を探す</h2>
+  <input id="songSearch" placeholder="曲名..." oninput="filterList()">
+  <input id="artistSearch" placeholder="歌手名..." oninput="filterList()">
+  <button class="btn-random" onclick="startAmida()">🎲 あみだくじで選曲！</button>
 </div>
 
-<div class="search-container">
-  <h2>曲を探す</h2>
-  <input id="songSearch" placeholder="曲名で絞り込み..." oninput="filterList()">
-  <input id="artistSearch" placeholder="歌手名で絞り込み..." oninput="filterList()">
-  <br>
-  <button class="btn-random" onclick="randomSong()">🎲 ランダムで決める！</button>
+<div id="amida-container">
+  <p>運命の選曲中...</p>
+  <div class="amida-line">
+    <div id="ball" class="amida-ball"></div>
+  </div>
+  <div id="result-display"></div>
 </div>
 
 <h2>曲一覧</h2>
 <table id="songTable"></table>
-
-<h2>リクエストランキング</h2>
-<table id="rankTable"></table>
 
 <script>
 const songs = [
@@ -50,49 +60,47 @@ const songs = [
   {title:"Pretender", artist:"Official髭男dism"}
 ];
 
-const ranking = [
-  {title:"世界に一つだけの花", votes:120},
-  {title:"Pretender", votes:100},
-  {title:"夜に駆ける", votes:90}
-];
+function buildSongTable(list) {
+  const t = document.getElementById("songTable");
+  t.innerHTML = "<tr><th>曲名</th><th>歌手</th></tr>";
+  list.forEach(s => {
+    t.innerHTML += `<tr><td>${s.title}</td><td>${s.artist}</td></tr>`;
+  });
+}
+
+// あみだくじアニメーション関数
+function startAmida() {
+  const container = document.getElementById("amida-container");
+  const ball = document.getElementById("ball");
+  const result = document.getElementById("result-display");
+  
+  // リセット
+  container.style.display = "block";
+  ball.style.top = "-10px";
+  result.innerText = "";
+
+  // アニメーション（1.5秒かけてボールが落ちる）
+  setTimeout(() => {
+    ball.style.top = "100px";
+  }, 100);
+
+  // 1.6秒後に結果表示
+  setTimeout(() => {
+    const s = songs[Math.floor(Math.random() * songs.length)];
+    result.innerHTML = `✨ 決定！ ✨<br>${s.title} / ${s.artist}`;
+  }, 1600);
+}
 
 function filterList() {
   const songQ = document.getElementById("songSearch").value.toLowerCase();
   const artistQ = document.getElementById("artistSearch").value.toLowerCase();
-  
   const filtered = songs.filter(s => 
-    s.title.toLowerCase().includes(songQ) && 
-    s.artist.toLowerCase().includes(artistQ)
+    s.title.toLowerCase().includes(songQ) && s.artist.toLowerCase().includes(artistQ)
   );
   buildSongTable(filtered);
 }
 
-function buildSongTable(list) {
-  const t = document.getElementById("songTable");
-  t.innerHTML = "<tr><th>曲名</th><th>歌手</th></tr>";
-  list.sort((a,b) => a.title.localeCompare(b.title, "ja"))
-      .forEach(s => {
-        t.innerHTML += `<tr><td>${s.title}</td><td>${s.artist}</td></tr>`;
-      });
-}
-
-function buildRanking() {
-  const t = document.getElementById("rankTable");
-  t.innerHTML = "<tr><th>順位</th><th>曲名</th><th>票数</th></tr>";
-  ranking.sort((a,b) => b.votes - a.votes)
-         .forEach((r, i) => {
-           t.innerHTML += `<tr class="ranking-row"><td>${i+1}位</td><td>${r.title}</td><td>${r.votes}票</td></tr>`;
-         });
-}
-
-function randomSong() {
-  const s = songs[Math.floor(Math.random() * songs.length)];
-  alert("本日の選曲：\n" + s.title + " (" + s.artist + ")");
-}
-
-// 初期表示
 buildSongTable(songs);
-buildRanking();
 </script>
 
 </body>
