@@ -27,22 +27,22 @@
   th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: left; }
   
   /* 得意曲カードのスタイル調整 */
-  .pickup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-top: 10px; }
+  .pickup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
   .pickup-card { 
     background: #e8f5e9; 
     padding: 12px 15px; 
     border-radius: 8px; 
     border-left: 5px solid var(--primary); 
     font-size: 0.95rem; 
-    cursor: pointer; /* クリックできることを示す */
+    cursor: pointer; 
     transition: 0.2s;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
   .pickup-card:hover { background: #dceddc; transform: translateY(-2px); }
-  .pickup-card small { color: #666; margin-left: 8px; }
-  .copy-icon { font-size: 0.8rem; opacity: 0.5; }
+  .pickup-card small { color: #666; display: block; margin-top: 4px; }
+  .copy-icon { font-size: 0.8rem; opacity: 0.5; margin-left: 5px; }
 </style>
 </head>
 <body>
@@ -83,6 +83,7 @@
 </section>
 
 <script>
+// --- 曲データ (省略なし) ---
 const songs = [
   {title:"マリーゴールド", artist:"あいみょん"},
   {title:"君はロックを聴かない", artist:"あいみょん"},
@@ -312,7 +313,6 @@ function buildPickupList() {
     list.innerHTML = "";
     const special = songs.filter(s => s.isSpecial);
     special.forEach(s => {
-        // onclick属性を追加して、クリックでコピーできるように変更
         list.innerHTML += `
           <div class="pickup-card" onclick="copyDirect('${s.title} / ${s.artist}')">
             <div><strong>${s.title}</strong><small>${s.artist}</small></div>
@@ -332,18 +332,16 @@ function kanaToHira(str) {
 function filterList() {
   const rawQ = document.getElementById("songSearch").value.toLowerCase();
   const q = kanaToHira(rawQ);
-  
   const filtered = songs.filter(s => {
     const title = kanaToHira(s.title.toLowerCase());
     const artist = kanaToHira(s.artist.toLowerCase());
     return title.includes(q) || artist.includes(q);
   });
-
   document.getElementById("songCount").innerText = songs.length;
   const t = document.getElementById("songTable");
-  t.innerHTML = "<tr><th>曲名　歌手</th><th>コピー</th></tr>";
+  t.innerHTML = "<tr><th>曲名 / 歌手</th><th>コピー</th></tr>";
   filtered.forEach(s => {
-    t.innerHTML += `<tr><td>${s.title}　<small style="color:#666;">${s.artist}</small></td>
+    t.innerHTML += `<tr><td><strong>${s.title}</strong><br><small style="color:#666;">${s.artist}</small></td>
     <td><button class="btn btn-copy" onclick="copyDirect('${s.title} / ${s.artist}')">📋</button></td></tr>`;
   });
 }
@@ -367,8 +365,6 @@ function animate(targetSongs) {
   const spacing = canvas.width / (count + 1);
   const startY = 30, endY = 350;
   let traceY = startY, traceCol = Math.floor(Math.random() * count), visitedLines = new Set();
-  let currentResultStr = "";
-
   function frame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#ddd';
@@ -382,13 +378,12 @@ function animate(targetSongs) {
       ctx.beginPath(); ctx.moveTo(spacing*(l.from+1), l.y); ctx.lineTo(spacing*(l.from+2), l.y); ctx.stroke();
     });
     ctx.fillStyle = '#e91e63'; ctx.beginPath(); ctx.arc(spacing * (traceCol + 1), traceY, 8, 0, Math.PI * 2); ctx.fill();
-
     if (traceY < endY) {
       let hit = amidaLines.find(l => Math.abs(l.y - traceY) < 2 && (l.from === traceCol || l.from === traceCol - 1) && !visitedLines.has(l));
       if (hit) { visitedLines.add(hit); traceCol = (hit.from === traceCol) ? traceCol + 1 : traceCol - 1; }
       traceY += 5; requestAnimationFrame(frame);
     } else {
-      currentResultStr = `${targetSongs[traceCol].title} / ${targetSongs[traceCol].artist}`;
+      let currentResultStr = `${targetSongs[traceCol].title} / ${targetSongs[traceCol].artist}`;
       window.lastAmidaResult = currentResultStr;
       resultText.innerHTML = `✨ 結果：${currentResultStr} ✨`;
       actionBtns.style.display = "flex";
@@ -397,14 +392,18 @@ function animate(targetSongs) {
   frame();
 }
 
+// --- 修正：コピー時のメッセージをシンプルに ---
 function copyResult() {
   if(window.lastAmidaResult) {
-    navigator.clipboard.writeText(window.lastAmidaResult).then(() => alert("コピーしました！"));
+    navigator.clipboard.writeText(window.lastAmidaResult).then(() => {
+      alert("コピーしました！"); // メッセージを固定
+    });
   }
 }
 function copyDirect(text) {
-  navigator.clipboard.writeText(text);
-  alert("コピーしました！");
+  navigator.clipboard.writeText(text).then(() => {
+    alert("コピーしました！"); // メッセージを固定
+  });
 }
 
 buildPickupList();
@@ -412,7 +411,3 @@ filterList();
 </script>
 </body>
 </html>
-
-
-
-
