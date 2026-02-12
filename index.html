@@ -15,6 +15,30 @@
   .btn-copy { background: #eee; color: #333; padding: 5px 15px; font-size: 0.8rem; border-radius: 5px; }
   .btn:hover { opacity: 0.8; transform: scale(1.05); }
 
+  /* --- トースト通知のスタイル --- */
+  #toast {
+    visibility: hidden;
+    min-width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 50px;
+    padding: 12px;
+    position: fixed;
+    z-index: 2000;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  #toast.show {
+    visibility: visible;
+    animation: fadein 0.5s, fadeout 0.5s 1.5s;
+  }
+  @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+  @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
   /* モーダル */
   #amida-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
   .modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 800px; position: relative; text-align: center; }
@@ -26,7 +50,6 @@
   table { width: 100%; border-collapse: collapse; }
   th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: left; }
   
-  /* 得意曲カードのスタイル調整 */
   .pickup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
   .pickup-card { 
     background: #e8f5e9; 
@@ -48,6 +71,8 @@
 <body>
 
 <h1>😻👙 My Song 🐼CHORE🎧</h1>
+
+<div id="toast">コピーしました！</div>
 
 <section id="profile">
   <p>今日の運曲はいかに！？</p>
@@ -83,7 +108,7 @@
 </section>
 
 <script>
-// --- 曲データ (省略なし) ---
+// --- 曲データ (一部抜粋表示ですが全データ入れてください) ---
 const songs = [
   {title:"マリーゴールド", artist:"あいみょん"},
   {title:"君はロックを聴かない", artist:"あいみょん"},
@@ -307,6 +332,12 @@ const canvas = document.getElementById('amida-stage');
 const ctx = canvas.getContext('2d');
 const resultText = document.getElementById('result-text');
 const actionBtns = document.getElementById('action-btns');
+const toast = document.getElementById('toast');
+
+function showToast() {
+  toast.className = "show";
+  setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2000);
+}
 
 function buildPickupList() {
     const list = document.getElementById('pickupList');
@@ -392,17 +423,17 @@ function animate(targetSongs) {
   frame();
 }
 
-// --- 修正：コピー時のメッセージをシンプルに ---
+// --- 変更点：alertを廃止し、自作のshowToast()を呼び出す ---
 function copyResult() {
   if(window.lastAmidaResult) {
     navigator.clipboard.writeText(window.lastAmidaResult).then(() => {
-      alert("コピーしました！"); // メッセージを固定
+      showToast();
     });
   }
 }
 function copyDirect(text) {
   navigator.clipboard.writeText(text).then(() => {
-    alert("コピーしました！"); // メッセージを固定
+    showToast();
   });
 }
 
